@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-YOUR HEADER COMMENT HERE
+This file contains the functions from soft des project one genefinder. It reads a string of dna and outputs proteins.
 
-@author: YOUR NAME HERE
+@author: MJ McMillen
 
 """
 
@@ -31,7 +31,17 @@ def get_complement(nucleotide):
     'G'
     """
     # TODO: implement this
-    pass
+    if nucleotide == 'A':
+        return 'T'
+    elif nucleotide == 'T':
+        return 'A'
+    elif nucleotide == 'C':
+        return'G'
+    elif nucleotide == 'G':
+        return 'C'
+    else:
+        return 'ERROR'
+    #end get_complement
 
 
 def get_reverse_complement(dna):
@@ -45,8 +55,20 @@ def get_reverse_complement(dna):
     >>> get_reverse_complement("CCGCGTTCA")
     'TGAACGCGG'
     """
-    # TODO: implement this
-    pass
+    strand_length = len(dna)   # how many letters are being decoded
+    current_dna = 0  # wat letter is being reversed
+    curlet= dna[current_dna]
+    reversed_letter = get_complement(curlet)  # returns the reversed
+    # letter of the current string characters
+    reversed_dna = reversed_letter  # adds the letter to the final string
+    current_dna = 1
+    while current_dna < strand_length:
+            curlet= dna[current_dna]
+            reversed_letter = get_complement(curlet)
+            reversed_dna = reversed_dna + reversed_letter
+            current_dna = current_dna + 1
+    return reversed_dna[::-1]
+    # end get_reverse_complement function
 
 
 def rest_of_ORF(dna):
@@ -62,8 +84,43 @@ def rest_of_ORF(dna):
     >>> rest_of_ORF("ATGAGATAGG")
     'ATGAGA'
     """
-    # TODO: implement this
-    pass
+    SC1 = 'TAG'  # these are the stopcodons
+    SC2 = 'TAA'
+    SC3 = 'TGA'
+    length_dna = len(dna)
+    strand_check = 0 #first instance in countdown clock
+    if dna[0:3] != 'ATG':
+        print('Warning: no start codon') #warns that the beginning is not a start codon
+    while strand_check < length_dna:
+        cur_cod = dna[strand_check:(strand_check+3)] # takes a slice of 3 nucleotides in frame.
+        if cur_cod == SC1 or cur_cod == SC2 or cur_cod == SC3:
+            #print (endcodon)
+            break
+        else:
+            strand_check = strand_check+3
+    endcodon = strand_check
+    return dna[0:endcodon]  # this returns the beginning of string:laststopcod
+    # end rest_of_ORF function
+
+
+def remove_duplicate(values):
+    """ This is a function that I added that removed duplicate strings from a
+    list. I noticed that my functions were failing doc tests because they gave
+    the same piece of dna twice so I decided to write this to remove the
+    duplicates while keeping the string in its origional order. The function
+    moves from the end to the beginning removing any instance of repetition.
+
+    >>> remove_duplicate(['AAA', 'BBB', 'AAA', 'CCC'])
+    ['BBB', 'AAA', 'CCC']
+    """
+    output = []
+    seen = set()
+    for value in values:
+        if value not in seen:
+            output.append(value)
+            seen.add(value)
+    return (output)
+
 
 
 def find_all_ORFs_oneframe(dna):
@@ -79,8 +136,24 @@ def find_all_ORFs_oneframe(dna):
     >>> find_all_ORFs_oneframe("ATGCATGAATGTAGATAGATGTGCCC")
     ['ATGCATGAATGTAGA', 'ATGTGCCC']
     """
-    # TODO: implement this
-    pass
+    # find the atg's
+    length_dna = len(dna)
+    strand_check = 0 # initializing count
+    frames= ['initial'] # list filler so I dont get an error
+    while strand_check < length_dna:
+        current_codon = dna[strand_check:(strand_check+3)]
+        if current_codon == 'ATG':
+            ORF = rest_of_ORF(dna[strand_check:])
+            frames.append(ORF)
+            end_ORF = len(ORF)
+            dna = dna[end_ORF:] #this makes sure it does not stop after one ORF or repeat an ORF
+            strand_check=0
+            #end of if loop
+        else:
+            strand_check = strand_check+3
+        #end of while loop
+    return remove_duplicate(frames[1:])
+    #end of find_all_ORFs_oneframe function
 
 
 def find_all_ORFs(dna):
@@ -96,8 +169,14 @@ def find_all_ORFs(dna):
     >>> find_all_ORFs("ATGCATGAATGTAG")
     ['ATGCATGAATGTAG', 'ATGAATGTAG', 'ATG']
     """
-    # TODO: implement this
-    pass
+    Endy = find_all_ORFs_oneframe(dna)
+    dna2 = dna[1:] #dna second reading frame
+    Endy= Endy + find_all_ORFs_oneframe(dna2)
+    dna3 = dna[2:] #dna third reading frame
+    Endy = Endy + find_all_ORFs_oneframe(dna3)
+    #print(type(Endy), 'type of find all ORFs')
+    return remove_duplicate(Endy)
+    # end of find_all_ORFs function
 
 
 def find_all_ORFs_both_strands(dna):
@@ -109,9 +188,11 @@ def find_all_ORFs_both_strands(dna):
     >>> find_all_ORFs_both_strands("ATGCGAATGTAGCATCAAA")
     ['ATGCGAATG', 'ATGCTACATTCGCAT']
     """
-    # TODO: implement this
-    pass
-
+    reverse_dna = get_reverse_complement(dna)
+    first_dna_ORFs = find_all_ORFs(dna)
+    reverse_dna_ORFs = find_all_ORFs(reverse_dna)
+    return remove_duplicate(first_dna_ORFs + reverse_dna_ORFs)
+    # End of find_all_ORFs_both_strands
 
 def longest_ORF(dna):
     """ Finds the longest ORF on both strands of the specified DNA and returns it
@@ -119,8 +200,22 @@ def longest_ORF(dna):
     >>> longest_ORF("ATGCGAATGTAGCATCAAA")
     'ATGCTACATTCGCAT'
     """
-    # TODO: implement this
-    pass
+    all_strands = find_all_ORFs_both_strands(dna)
+    current_biggest = ['empty']# biggest current ORF
+    biggest = 0 #length of current biggest ORF
+    for s in all_strands:
+        length = len(s)
+        if length > biggest:
+            biggest = length
+            current_biggest = s
+            #end of if
+        elif length == biggest:
+            biggest = length
+            current_biggest = current_biggest, biggest
+            #end elif
+        #end of for
+    return current_biggest
+    #end of longest_ORF
 
 
 def longest_ORF_noncoding(dna, num_trials):
@@ -130,8 +225,18 @@ def longest_ORF_noncoding(dna, num_trials):
         dna: a DNA sequence
         num_trials: the number of random shuffles
         returns: the maximum length longest ORF """
-    # TODO: implement this
-    pass
+    current_biggest = 0
+    n = 0
+    while n <= num_trials:
+        currentdna = shuffle_string(dna)
+        longest_in_shuffle = longest_ORF(currentdna)
+        biggest_slice = len(longest_in_shuffle)
+        if  biggest_slice >= current_biggest:
+            current_biggest = biggest_slice
+            #end if loop
+        #end for loop
+        n = n + 1
+    return current_biggest
 
 
 def coding_strand_to_AA(dna):
@@ -148,9 +253,20 @@ def coding_strand_to_AA(dna):
         >>> coding_strand_to_AA("ATGCCCGCTTT")
         'MPA'
     """
-    # TODO: implement this
-    pass
-
+    lengthy = len(dna)
+    counting = 0
+    aminosequence = 'Q'
+    while counting < lengthy:
+        curslice = dna[counting:counting+3]
+        if len(curslice)<3:
+            break
+            #end if statement
+        amino_coded = aa_table[curslice]
+        aminosequence += amino_coded
+        counting = counting +3
+        #end of while loop
+    return aminosequence[1:]
+    #end of function coding_strands_to_AA
 
 def gene_finder(dna):
     """ Returns the amino acid sequences that are likely coded by the specified dna
@@ -158,9 +274,30 @@ def gene_finder(dna):
         dna: a DNA sequence
         returns: a list of all amino acid sequences coded by the sequence dna.
     """
-    # TODO: implement this
-    pass
+    gene_threshold = longest_ORF_noncoding(dna, 1500)    #how long a sequence must be to be considered a gene
+    all_orfs = find_all_ORFs_both_strands(dna)
+    #this finds all the ORFs in both strands of dna
+    #now I need to filter the strands and throw out the ones less than gene_threshold
+    final_amino_acids = ['initial']
+    number_of_orfs = len(all_orfs)
+    s = 0
+    while s < number_of_orfs:
+        current_orf = all_orfs[s]
+        length_of_slice = len(current_orf)
+        if length_of_slice > gene_threshold:
+            #find the amino acids.
+            aminos_coded = coding_strand_to_AA(current_orf)
+            final_amino_acids.append(aminos_coded)
+            #end of elif
+        s = s + 1
+    del final_amino_acids[0]
+    #print(len(final_amino_acids)
+    return final_amino_acids
+
 
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
+    from load import load_seq
+    test_dna = load_seq("./data/X73525.fa")
+    print(gene_finder(test_dna))
